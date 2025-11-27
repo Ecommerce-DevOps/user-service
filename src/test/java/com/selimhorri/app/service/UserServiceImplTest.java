@@ -18,6 +18,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 import com.selimhorri.app.domain.User;
 import com.selimhorri.app.domain.Credential;
 import com.selimhorri.app.domain.RoleBasedAuthority;
@@ -40,6 +43,9 @@ class UserServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private MeterRegistry meterRegistry;
+
     @InjectMocks
     private UserServiceImpl userService;
 
@@ -54,7 +60,7 @@ class UserServiceImplTest {
         credential.setUsername("johndoe");
         credential.setPassword("password123");
         credential.setRoleBasedAuthority(RoleBasedAuthority.ROLE_USER);
-        
+
         // Configurar datos de prueba del usuario
         user = new User();
         user.setUserId(1);
@@ -63,14 +69,14 @@ class UserServiceImplTest {
         user.setEmail("john.doe@example.com");
         user.setPhone("1234567890");
         user.setCredential(credential);
-        
+
         // Configurar credencial DTO de prueba
         CredentialDto credentialDto = new CredentialDto();
         credentialDto.setCredentialId(1);
         credentialDto.setUsername("johndoe");
         credentialDto.setPassword("password123");
         credentialDto.setRoleBasedAuthority(RoleBasedAuthority.ROLE_USER);
-        
+
         userDto = new UserDto();
         userDto.setUserId(1);
         userDto.setFirstName("John");
@@ -89,14 +95,14 @@ class UserServiceImplTest {
         credential2.setUsername("janesmith");
         credential2.setPassword("password456");
         credential2.setRoleBasedAuthority(RoleBasedAuthority.ROLE_USER);
-        
+
         User user2 = new User();
         user2.setUserId(2);
         user2.setFirstName("Jane");
         user2.setLastName("Smith");
         user2.setEmail("jane.smith@example.com");
         user2.setCredential(credential2);
-        
+
         List<User> users = Arrays.asList(user, user2);
         when(userRepository.findAll()).thenReturn(users);
 
@@ -143,6 +149,8 @@ class UserServiceImplTest {
     @DisplayName("Test 4: Save user - should persist and return saved user")
     void testSave_ShouldPersistAndReturnUser() {
         // Given
+        Counter counter = mock(Counter.class);
+        when(meterRegistry.counter(anyString())).thenReturn(counter);
         when(userRepository.save(any(User.class))).thenReturn(user);
 
         // When
@@ -198,4 +206,3 @@ class UserServiceImplTest {
         verify(userRepository, times(1)).findByCredentialUsername(username);
     }
 }
-

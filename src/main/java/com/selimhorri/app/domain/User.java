@@ -27,47 +27,38 @@ import lombok.NoArgsConstructor;
 @Table(name = "users")
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true, exclude = {"addresses", "credential"})
+@EqualsAndHashCode(callSuper = true, exclude = { "addresses", "credential" })
 @Data
 @Builder
 public final class User extends AbstractMappedEntity implements Serializable {
-	
+
 	private static final long serialVersionUID = 1L;
-	
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "user_id", unique = true, nullable = false, updatable = false)
 	private Integer userId;
-	
+
 	@Column(name = "first_name")
 	private String firstName;
-	
+
 	@Column(name = "last_name")
 	private String lastName;
-	
+
 	@Column(name = "image_url")
 	private String imageUrl;
-	
+
 	@Email(message = "*Input must be in Email format!**")
+	@Column(unique = true)
 	private String email;
-	
+
 	private String phone;
-	
+
 	@JsonIgnore
 	@OneToMany(cascade = CascadeType.ALL, mappedBy = "user", fetch = FetchType.LAZY)
 	private Set<Address> addresses;
-	
+
 	@OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "user")
 	private Credential credential;
-	
+
 }
-
-
-
-
-
-
-
-
-
-

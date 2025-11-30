@@ -44,6 +44,20 @@ public class ApiExceptionHandler {
 				badRequest);
 	}
 
+	@ExceptionHandler(value = javax.validation.ConstraintViolationException.class)
+	public ResponseEntity<ExceptionMsg> handleConstraintViolationException(
+			final javax.validation.ConstraintViolationException e) {
+		log.info("**ApiExceptionHandler controller, handle constraint violation*\n");
+		final var badRequest = HttpStatus.BAD_REQUEST;
+		return new ResponseEntity<>(
+				ExceptionMsg.builder()
+						.msg("*" + e.getMessage() + "!*")
+						.httpStatus(badRequest)
+						.timestamp(ZonedDateTime.now(ZoneId.systemDefault()))
+						.build(),
+				badRequest);
+	}
+
 	@ExceptionHandler(value = {
 			UserObjectNotFoundException.class,
 			CredentialNotFoundException.class,

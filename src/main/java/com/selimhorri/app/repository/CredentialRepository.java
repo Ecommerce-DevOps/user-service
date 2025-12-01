@@ -10,4 +10,6 @@ public interface CredentialRepository extends JpaRepository<Credential, Integer>
 	
 	Optional<Credential> findByUsername(final String username);
 	
+	Optional<Credential> findByUserUserId(final Integer userId);
+	
 }

@@ -7,9 +7,12 @@ import javax.transaction.Transactional;
 
 import org.springframework.stereotype.Service;
 
+import com.selimhorri.app.domain.Credential;
+import com.selimhorri.app.domain.User;
 import com.selimhorri.app.dto.UserDto;
 import com.selimhorri.app.exception.wrapper.UserObjectNotFoundException;
 import com.selimhorri.app.helper.UserMappingHelper;
+import com.selimhorri.app.repository.CredentialRepository;
 import com.selimhorri.app.repository.UserRepository;
 import com.selimhorri.app.service.UserService;
 
@@ -25,6 +28,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 public class UserServiceImpl implements UserService {
 
 	private final UserRepository userRepository;
+	private final CredentialRepository credentialRepository;
 	private final MeterRegistry meterRegistry;
 
 	@Override
@@ -49,22 +53,103 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserDto save(final UserDto userDto) {
 		log.info("*** UserDto, service; save user *");
-		UserDto savedUser = UserMappingHelper.map(this.userRepository.save(UserMappingHelper.map(userDto)));
+		
+		// Map DTO to entity
+		User user = UserMappingHelper.map(userDto);
+		
+		// Temporarily remove credential to save user first
+		Credential credential = user.getCredential();
+		user.setCredential(null);
+		
+		// Save user first to get the generated ID
+		User savedUser = this.userRepository.save(user);
+		
+		// Now save credential with the user reference
+		if (credential != null) {
+			credential.setUser(savedUser);
+			Credential savedCredential = this.credentialRepository.save(credential);
+			savedUser.setCredential(savedCredential);
+		}
+		
 		this.meterRegistry.counter("user_registrations_total").increment();
-		return savedUser;
+		return UserMappingHelper.map(savedUser);
 	}
 
 	@Override
 	public UserDto update(final UserDto userDto) {
 		log.info("*** UserDto, service; update user *");
-		return UserMappingHelper.map(this.userRepository.save(UserMappingHelper.map(userDto)));
+		
+		// First verify user exists
+		if (!this.userRepository.existsById(userDto.getUserId())) {
+			throw new UserObjectNotFoundException(
+					String.format("User with id: %d not found", userDto.getUserId()));
+		}
+		
+		// Get existing credential ID separately
+		Integer existingCredentialId = this.credentialRepository.findByUserUserId(userDto.getUserId())
+				.map(Credential::getCredentialId)
+				.orElse(null);
+		
+		// Map DTO to entity
+		User user = UserMappingHelper.map(userDto);
+		
+		// For updates, handle credential separately
+		Credential newCredential = user.getCredential();
+		user.setCredential(null);
+		
+		// Save user first
+		User savedUser = this.userRepository.save(user);
+		
+		// Update credential with existing credential ID
+		if (newCredential != null) {
+			if (existingCredentialId != null) {
+				newCredential.setCredentialId(existingCredentialId);
+			}
+			newCredential.setUser(savedUser);
+			Credential savedCredential = this.credentialRepository.save(newCredential);
+			savedUser.setCredential(savedCredential);
+		}
+		
+		return UserMappingHelper.map(savedUser);
 	}
 
 	@Override
 	public UserDto update(final Integer userId, final UserDto userDto) {
 		log.info("*** UserDto, service; update user with userId *");
-		return UserMappingHelper.map(this.userRepository.save(
-				UserMappingHelper.map(this.findById(userId))));
+		
+		// First verify user exists
+		if (!this.userRepository.existsById(userId)) {
+			throw new UserObjectNotFoundException(
+					String.format("User with id: %d not found", userId));
+		}
+		
+		// Get existing credential ID separately
+		Integer existingCredentialId = this.credentialRepository.findByUserUserId(userId)
+				.map(Credential::getCredentialId)
+				.orElse(null);
+		
+		// Map DTO to entity with the provided userId
+		User user = UserMappingHelper.map(userDto);
+		user.setUserId(userId);
+		
+		// For updates, handle credential separately
+		Credential newCredential = user.getCredential();
+		user.setCredential(null);
+		
+		// Save user first
+		User savedUser = this.userRepository.save(user);
+		
+		// Update credential with existing credential ID
+		if (newCredential != null) {
+			if (existingCredentialId != null) {
+				newCredential.setCredentialId(existingCredentialId);
+			}
+			newCredential.setUser(savedUser);
+			Credential savedCredential = this.credentialRepository.save(newCredential);
+			savedUser.setCredential(savedCredential);
+		}
+		
+		return UserMappingHelper.map(savedUser);
 	}
 
 	@Override
